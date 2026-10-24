@@ -9,7 +9,7 @@
   <h1>Volabot AI</h1>
   <p id="status">Checking authorization response...</p>
   <script>
-    const APP_ID = "34LDVrHY1sipjLFU5vucF";
+    const APP_ID ="34LDVrHY1sipjLFU5vucF";
     const REDIRECT = "https://pilly85ally-netizen.github.io/Volabot-AI-/";
     const status = document.getElementById("status");
     const params = new URLSearchParams(location.search);
@@ -28,7 +28,7 @@
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             grant_type: "authorization_code",
-            client_id: 34LDVrHY1sipjLFU5vucF,
+            client_id:34LDVrHY1sipjLFU5vucF,
             code: params.get("code"),
             code_verifier: sessionStorage.getItem("pkce_verifier"),
             redirect_uri: REDIRECT
