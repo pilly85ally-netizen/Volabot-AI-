@@ -1,0 +1,30 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Volabot AI - Deriv Callback</title>
+</head>
+<body>
+  <h1>Volabot AI</h1>
+  <p>Deriv authorization callback page.</p>
+  <p id="status">Checking authorization response...</p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const status = document.getElementById("status");
+
+    if (params.has("code")) {
+      status.textContent =
+        "Authorization code received. Secure token exchange is still required.";
+    } else if (params.has("error")) {
+      status.textContent =
+        "Authorization was not completed. Please try again.";
+    } else {
+      status.textContent =
+        "No authorization response received yet.";
+    }
+  </script>
+</body>
+</html>
