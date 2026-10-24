@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,23 +7,44 @@
 </head>
 <body>
   <h1>Volabot AI</h1>
-  <p>Deriv authorization callback page.</p>
   <p id="status">Checking authorization response...</p>
-
   <script>
-    const params = new URLSearchParams(window.location.search);
+    const APP_ID = "34LDVrHY1sipjLFU5vucF";
+    const REDIRECT = "https://pilly85ally-netizen.github.io/Volabot-AI-/";
     const status = document.getElementById("status");
-
-    if (params.has("code")) {
-      status.textContent =
-        "Authorization code received. Secure token exchange is still required.";
-    } else if (params.has("error")) {
-      status.textContent =
-        "Authorization was not completed. Please try again.";
-    } else {
-      status.textContent =
-        "No authorization response received yet.";
-    }
+    const params = new URLSearchParams(location.search);
+    (async () => {
+      if (!params.has("code")) {
+        status.textContent = "No authorization code received.";
+        return;
+      }
+      if (params.get("state") !== sessionStorage.getItem("pkce_state")) {
+        status.textContent = "State mismatch. Please login again.";
+        return;
+      }
+      try {
+        const res = await fetch("https://auth.deriv.com/oauth2/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            client_id:34LDVrHY1sipjLFU5vucF,
+            code: params.get("code"),
+            code_verifier: sessionStorage.getItem("pkce_verifier"),
+            redirect_uri: REDIRECT
+          })
+        });
+        const data = await res.json();
+        if (data.access_token) {
+          sessionStorage.setItem("deriv_token", data.access_token);
+          location.href = "../";
+        } else {
+          status.textContent = "Token error: " + JSON.stringify(data);
+        }
+      } catch (e) {
+        status.textContent = "Request failed: " + e.message;
+      }
+    })();
   </script>
 </body>
 </html>
