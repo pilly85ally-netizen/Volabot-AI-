@@ -23,7 +23,7 @@
       sessionStorage.setItem("pkce_verifier", verifier);
       sessionStorage.setItem("pkce_state", state);
       location.href = "https://auth.deriv.com/oauth2/auth?" + new URLSearchParams({
-        response_type: "code", client_id:"34LDVrHY1sipjLFU5vucF"; redirect_uri: REDIRECT,
+        response_type: "code", client_id:"34LDVrHY1sipjLFU5vucF", redirect_uri: REDIRECT,
         code_challenge: challenge, code_challenge_method: "S256", state
       });
     }
