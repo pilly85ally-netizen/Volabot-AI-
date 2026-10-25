@@ -8,28 +8,122 @@
 <body>
   <h1>Welcome to Volabot AI</h1>
   <p id="status">Not logged in.</p>
-  <button onclick="login()">Login with Deriv</button>
+  <button id="loginButton" type="button">Login with Deriv</button>
+
   <script>
-    const APP_ID ="34LDVrHY1sipjLFU5vucF";
-    const REDIRECT = "https://pilly85ally-netizen.github.io/Volabot-AI-/";
-    function b64url(buf) {
-      return btoa(String.fromCharCode(...new Uint8Array(buf)))
-        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const APP_ID = "34LDVrHY1sipjLFU5vucF";
+    const REDIRECT =
+      "https://pilly85ally-netizen.github.io/Volabot-AI-/";
+
+    const statusEl = document.getElementById("status");
+    const loginButton = document.getElementById("loginButton");
+
+    function base64url(bytes) {
+      return btoa(String.fromCharCode(...new Uint8Array(bytes)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
     }
+
+    function randomString(length = 64) {
+      const bytes = crypto.getRandomValues(
+        new Uint8Array(length)
+      );
+      const chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+
+      return Array.from(bytes, b => chars[b % chars.length]).join("");
+    }
+
     async function login() {
-      const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
-      const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
-      const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
-      sessionStorage.setItem("pkce_verifier", verifier);
-      sessionStorage.setItem("pkce_state", state);
-      location.href = "https://auth.deriv.com/oauth2/auth?" + new URLSearchParams({
-        response_type: "code", client_id:"34LDVrHY1sipjLFU5vucF", redirect_uri: REDIRECT,
-        code_challenge: challenge, code_challenge_method: "S256", state
-      });
+      if (new URL(location.href).searchParams.has("code")) {
+        statusEl.textContent =
+          "Authorization callback detected. Do not start login again.";
+        return;
+      }
+
+      if (!crypto.subtle) {
+        statusEl.textContent =
+          "HTTPS is required for secure OAuth login.";
+        return;
+      }
+
+      loginButton.disabled = true;
+      statusEl.textContent = "Preparing Deriv login...";
+
+      try {
+        const verifier = randomString();
+        const challenge = base64url(
+          await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder().encode(verifier)
+          )
+        );
+
+        const state = base64url(
+          crypto.getRandomValues(new Uint8Array(16))
+        );
+
+        sessionStorage.setItem("pkce_verifier", verifier);
+        sessionStorage.setItem("pkce_state", state);
+
+        const authURL = new URL(
+          "https://auth.deriv.com/oauth2/auth"
+        );
+
+        authURL.search = new URLSearchParams({
+          response_type: "code",
+          client_id: APP_ID,
+          redirect_uri: REDIRECT,
+          scope: "trade",
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+          state: state
+        }).toString();
+
+        location.assign(authURL.toString());
+      } catch (error) {
+        statusEl.textContent =
+          "Could not start login. Please reload and try again.";
+        loginButton.disabled = false;
+      }
     }
-    if (sessionStorage.getItem("deriv_token")) {
-      document.getElementById("status").textContent = "Logged in successfully.";
+
+    async function handleCallback() {
+      const params = new URLSearchParams(location.search);
+      const code = params.get("code");
+      const returnedState = params.get("state");
+      const error = params.get("error");
+
+      if (error) {
+        statusEl.textContent =
+          "Deriv login failed or was cancelled: " + error;
+        return;
+      }
+
+      if (!code) {
+        statusEl.textContent = "Not logged in.";
+        return;
+      }
+
+      loginButton.disabled = true;
+
+      const savedState = sessionStorage.getItem("pkce_state");
+      const verifier = sessionStorage.getItem("pkce_verifier");
+
+      if (!savedState || !verifier || returnedState !== savedState) {
+        statusEl.textContent =
+          "OAuth state verification failed. Start a new login.";
+        return;
+      }
+
+      statusEl.textContent =
+        "Callback verified. Backend token exchange is still required. " +
+        "Login is not complete yet.";
     }
+
+    loginButton.addEventListener("click", login);
+    handleCallback();
   </script>
 </body>
 </html>
