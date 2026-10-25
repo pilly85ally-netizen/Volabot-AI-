@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,43 +9,68 @@
 <body>
   <h1>Volabot AI</h1>
   <p id="status">Checking authorization response...</p>
+
   <script>
-    const APP_ID ="34LDVrHY1sipjLFU5vucF";
-    const REDIRECT = "https://pilly85ally-netizen.github.io/Volabot-AI-/";
-    const status = document.getElementById("status");
+    const REDIRECT =
+      "https://pilly85ally-netizen.github.io/Volabot-AI-/";
+
+    const statusEl = document.getElementById("status");
     const params = new URLSearchParams(location.search);
-    (async () => {
-      if (!params.has("code")) {
-        status.textContent = "No authorization code received.";
+
+    async function handleCallback() {
+      const code = params.get("code");
+      const returnedState = params.get("state");
+      const oauthError = params.get("error");
+
+      if (oauthError) {
+        statusEl.textContent =
+          "Deriv authorization failed: " + oauthError;
         return;
       }
-      if (params.get("state") !== sessionStorage.getItem("pkce_state")) {
-        status.textContent = "State mismatch. Please login again.";
+
+      if (!code) {
+        statusEl.textContent =
+          "No authorization code received. Start login from Volabot AI.";
         return;
       }
-      try {
-        const res = await fetch("https://auth.deriv.com/oauth2/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            grant_type: "authorization_code",
-            client_id:"34LDVrHY1sipjLFU5vucF",
-            code: params.get("code"),
-            code_verifier: sessionStorage.getItem("pkce_verifier"),
-            redirect_uri: REDIRECT
-          })
-        });
-        const data = await res.json();
-        if (data.access_token) {
-          sessionStorage.setItem("deriv_token", data.access_token);
-          location.href = "../";
-        } else {
-          status.textContent = "Token error: " + JSON.stringify(data);
-        }
-      } catch (e) {
-        status.textContent = "Request failed: " + e.message;
+
+      const savedState = sessionStorage.getItem("pkce_state");
+      const verifier = sessionStorage.getItem("pkce_verifier");
+
+      if (!savedState || returnedState !== savedState) {
+        statusEl.textContent =
+          "State verification failed. Return to Volabot AI and start a new login.";
+        return;
       }
-    })();
+
+      if (!verifier) {
+        statusEl.textContent =
+          "PKCE verifier is missing. Start a new login.";
+        return;
+      }
+
+      // Do not exchange the same code twice in this browser tab.
+      const handledKey = "handled_oauth_code";
+
+      if (sessionStorage.getItem(handledKey) === code) {
+        statusEl.textContent =
+          "This authorization code has already been handled. Start a new login if needed.";
+        return;
+      }
+
+      sessionStorage.setItem(handledKey, code);
+
+      // Remove the authorization code from the visible URL.
+      history.replaceState({}, document.title, REDIRECT);
+
+      statusEl.textContent =
+        "Authorization response verified. A secure backend is required to exchange the code for a token.";
+    }
+
+    handleCallback().catch(() => {
+      statusEl.textContent =
+        "An unexpected callback error occurred. Please start a new login.";
+    });
   </script>
 </body>
 </html>
